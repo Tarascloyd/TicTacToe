@@ -275,7 +275,6 @@ class Board {
     public String analizeMoveForWinOrBlock(int winGrade) {
         int[][][] winState = getWinState();
         for (int[][] line : winState) {
-            System.out.println(line[0][2] + " " + line[1][2] + " " + line[2][2]);
             if (line[0][2] + line[1][2] + line[2][2] ==  winGrade+95) {
                 for (int[] cell : line) {
                     if (cell[2] == 95) {
