@@ -43,6 +43,19 @@ class MediumAI extends AI {
         System.out.println("Making move level \"medium\"");
     }  
 }
+class HardAI extends AI {
+    @Override
+    public String nextMove() {
+        int[] result = board.minimax(3, board.setIsX() ? 'X' : 'O', board.setIsX() ? 'X' : 'O');
+        String first = String.valueOf(result[1]+1); 
+        String second = String.valueOf(result[2]+1);
+        return first + second;          
+    }
+    @Override
+    public void printWho() {       
+        System.out.println("Making move level \"hard\"");
+    }  
+}
 class Game {
     private Board board;
     private AI ai1;
@@ -58,11 +71,17 @@ class Game {
             } else if ("medium".equals(player1)) {
                 ai1 = new MediumAI();
                 ai1.setBoard(board);   
+            } else if ("hard".equals(player1)) {
+                ai1 = new HardAI();
+                ai1.setBoard(board);   
             }
             if ("easy".equals(player2)) {
                 ai2 = new EasyAI();    
             } else if ("medium".equals(player2)) {
                 ai2 = new MediumAI();
+                ai2.setBoard(board);   
+            } else if ("hard".equals(player2)) {
+                ai2 = new HardAI();
                 ai2.setBoard(board);   
             }
         } else {
@@ -254,6 +273,60 @@ class Board {
             }
         }
     }
+    public boolean analizeforAI() {
+        int xs = 0;
+        int os = 0;
+        int[] rows = new int[3];
+        int[] cols = new int[3];
+        int d1 = 0;
+        int d2 = 0;
+        for (int j=0; j<3; j++) {
+            for (int i=0; i<3; i++) {
+                if (chars[j][i] == 'X') {
+                    xs++;    
+                } else if (chars[j][i] == 'O') {
+                    os++;
+                } else {
+                    
+                }
+                rows[j] += (int) chars[j][i];
+                cols[i] += (int) chars[j][i];
+                if (j==0 && i==2 || j==1 && i==1 || j==2 && i==0) {
+                    d1 += (int) chars[j][i];
+                }
+                if (j==0 && i==0 || j==1 && i==1 || j==2 && i==2) {
+                    d2 += (int) chars[j][i];
+                }     
+            }
+        }
+        boolean isXwins = false;
+        boolean isOwins = false;
+        if (Math.abs(xs - os) > 1) {
+            return false;    
+        } else {
+            if (rows[0] == 264 || rows[1] == 264 || rows[2] == 264
+                    || cols[0] == 264 || cols[1] == 264 || cols[2] == 264
+                    || d1 == 264 || d2 == 264) {
+                isXwins = true;
+            } 
+            if (rows[0] == 237 || rows[1] == 237 || rows[2] == 237
+                    || cols[0] == 237 || cols[1] == 237 || cols[2] == 237
+                    || d1 == 237 || d2 == 237) {
+                isOwins = true;
+            }
+            if (isXwins && isOwins) {
+                return false;
+            } else if (isXwins) {
+                return true;     
+            } else if (isOwins) {
+                return true;     
+            } else if ((xs + os) == 9) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
     public String analizeMoveForWin() {
         int winGrade = 0;
         if (setIsX()) {
@@ -288,7 +361,34 @@ class Board {
         return "";   
         
     }
-    
+    private int evaluate(char MyXorO) {
+        int score = 0;
+        int[][][] winState = getWinState();
+        for (int[][] line : winState) {
+            int sum = line[0][2] + line[1][2] + line[2][2];  
+            switch (sum) {
+                case 278:
+                    score += 1;
+                    break;
+                case 269:
+                    score += -1;
+                    break;
+                case 271:
+                    score += 10;
+                    break;
+                case 253:
+                    score += -10;
+                    break;
+                case 264:
+                    score += 100;
+                    break;
+                case 237:
+                    score += -100;
+                    break;   
+            }
+        }
+        return MyXorO == 'X' ? score : -score;
+    }
     
     public int[][][] getWinState() {
         int[][][] winState = new int[8][3][3];
@@ -313,6 +413,52 @@ class Board {
             }
         }
         return winState;    
+    }
+    public int[] minimax(int depth, char CurrentXorO, char MyXorO) {
+        List<int[]> nextMoves = generateMoves();
+        int bestScore = (CurrentXorO == MyXorO) ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+        int currentScore;
+        int bestRow = -1;
+        int bestCol = -1;
+        
+        if (nextMoves.isEmpty() || depth == 0) {
+            bestScore = evaluate(MyXorO);    
+        } else {
+            for (int[] move : nextMoves) {
+                chars[move[0]][move[1]] = CurrentXorO;
+                if (CurrentXorO == MyXorO) {
+                    currentScore = minimax(depth - 1, CurrentXorO == 'X' ? 'O' : 'X', MyXorO)[0];
+                    if (currentScore > bestScore) {
+                        bestScore = currentScore;
+                        bestRow = move[0];
+                        bestCol = move[1];
+                    }
+                } else { 
+                    currentScore = minimax(depth - 1, CurrentXorO == 'X' ? 'O' : 'X', MyXorO)[0];
+                    if (currentScore < bestScore) {
+                        bestScore = currentScore;
+                        bestRow = move[0];
+                        bestCol = move[1];
+                    }
+                }
+                chars[move[0]][move[1]] = '_';
+            }
+        }
+        return new int[] {bestScore, bestRow, bestCol};
+    }
+    private List<int[]> generateMoves() {
+        List<int[]> nextMoves = new ArrayList<int[]>();
+        if (analizeforAI()) {
+            return nextMoves;    
+        }
+        for (int j=0; j<3; j++) {
+            for (int i=0; i<3; i++) {
+                if (chars[j][i] == '_') {
+                    nextMoves.add(new int[] {j,i});    
+                }
+            }
+        }
+        return nextMoves;
     }        
 }
 public class Main {
@@ -327,8 +473,10 @@ public class Main {
             } else {
                 if (splitLine.length == 3) {
                     if ("start".equals(splitLine[0])) {
-                        if (("easy".equals(splitLine[1]) || "medium".equals(splitLine[1]) || "user".equals(splitLine[1])) 
-                            && ("easy".equals(splitLine[2]) || "medium".equals(splitLine[2]) || "user".equals(splitLine[1]))) {
+                        if (("easy".equals(splitLine[1]) || "medium".equals(splitLine[1]) 
+                        || "hard".equals(splitLine[1]) || "user".equals(splitLine[1])) 
+                            && ("easy".equals(splitLine[2]) || "medium".equals(splitLine[2])
+                            || "hard".equals(splitLine[2])  || "user".equals(splitLine[2]))) {
                             Game game = new Game(true, splitLine[1], splitLine[2]);
                             game.start();
                         } else {
